@@ -1,31 +1,31 @@
 # src/ingestion/chunker.py
 
 import re
-from typing import List, Dict, Tuple
+from typing import List, Dict
 from pathlib import Path
+from config.settings import Settings
 
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
 class PolicyChunker:
     """
     Advanced Markdown-aware semantic chunker for corporate policy documents.
     Handles .txt files with # and ## headers, preserves tables, and adds overlap.
+    Now includes a running chunk_id for each chunk.
     """
 
     def __init__(
         self,
         chunk_size: int = 1200,
-        chunk_overlap_percent: float = 0.12,  # 12% overlap (within 10-15% range)
+        chunk_overlap_percent: float = 0.12,  # 10-15% recommended
     ):
         self.chunk_size = chunk_size
         self.chunk_overlap = int(chunk_size * chunk_overlap_percent)
         self.header_pattern = re.compile(r'^(#{1,6})\s+(.+?)$', re.MULTILINE)
 
     def _extract_headers_and_content(self, text: str) -> List[Dict]:
-        """
-        Splits document by headers (#, ##, ### etc.) while preserving hierarchy.
-        """
+        """Splits document by headers while preserving hierarchy."""
         lines = text.split('\n')
         chunks = []
         current_chunk = {"header": "", "h1": "", "h2": "", "content": []}
@@ -39,7 +39,7 @@ class PolicyChunker:
                 level = len(header_match.group(1))
                 title = header_match.group(2).strip()
 
-                # Save previous chunk if it has content
+                # Save previous chunk
                 if current_chunk["content"] and current_chunk["header"]:
                     chunks.append({
                         "header": current_chunk["header"],
@@ -48,7 +48,7 @@ class PolicyChunker:
                         "content": "\n".join(current_chunk["content"]).strip()
                     })
 
-                # Update current headers
+                # Update headers
                 if level == 1:
                     current_h1 = title
                     current_h2 = ""
@@ -62,10 +62,10 @@ class PolicyChunker:
                     "content": [line]
                 }
             else:
-                if current_chunk["content"] is not None:
+                if current_chunk.get("content") is not None:
                     current_chunk["content"].append(line)
 
-        # Don't forget the last chunk
+        # Add last chunk
         if current_chunk["content"]:
             chunks.append({
                 "header": current_chunk["header"],
@@ -77,24 +77,12 @@ class PolicyChunker:
         return chunks
 
     def _preserve_tables(self, text: str) -> str:
-        """
-        Basic table preservation for text/Markdown tables.
-        You can enhance this later with better table detection.
-        """
-        # Simple regex to detect tables (lines with | or consistent spacing)
-        table_pattern = re.compile(r'(?:^.*\|.*$\n?)+', re.MULTILINE)
-        tables = table_pattern.findall(text)
-
-        for table in tables:
-            if len(table) > 100:  # Only preserve substantial tables
-                # You can add logic here to chunk large tables by rows if needed
-                pass
-
-        return text  # For now, return as-is. Enhance later.
+        """Placeholder for table preservation logic."""
+        return text  # Enhance later as needed
 
     def _create_semantic_chunks(self, header_chunks: List[Dict]) -> List[Dict]:
         """
-        Use LangChain splitter on each header section for finer chunking + overlap.
+        Creates final semantic chunks with overlap and assigns running chunk_id.
         """
         final_chunks = []
         splitter = RecursiveCharacterTextSplitter(
@@ -104,19 +92,23 @@ class PolicyChunker:
             length_function=len,
         )
 
+        chunk_counter = 1  # Running count starts from 1
+
         for section in header_chunks:
             if not section["content"].strip():
                 continue
 
-            # Split content further if it's too large
             sub_chunks = splitter.split_text(section["content"])
 
             for i, sub_text in enumerate(sub_chunks):
-                chunk_text = f"{section['header']}\n\n{sub_text}"
+                chunk_text = f"{section['header']}\n\n{sub_text}".strip()
 
                 final_chunks.append({
-                    "chunk_text": chunk_text.strip(),
+                    "chunk_id": f"chunk_{str(chunk_counter).zfill(4)}",   # e.g., chunk_0001, chunk_0002
+                    # OR use integer: "chunk_id": chunk_counter,
+                    "chunk_text": chunk_text,
                     "metadata": {
+                        "chunk_id": f"chunk_{str(chunk_counter).zfill(4)}",
                         "h1_header": section.get("h1_header", ""),
                         "h2_header": section.get("h2_header", ""),
                         "section_header": section.get("header", ""),
@@ -124,12 +116,13 @@ class PolicyChunker:
                         "source_type": "policy_document"
                     }
                 })
+                chunk_counter += 1
 
         return final_chunks
 
     def chunk_document(self, file_path: str | Path) -> List[Dict]:
         """
-        Main public method: Process one document and return ready-to-embed chunks.
+        Main method: Returns list of chunks with chunk_id.
         """
         file_path = Path(file_path)
         
@@ -141,25 +134,26 @@ class PolicyChunker:
         # Step 1: Split by headers
         header_sections = self._extract_headers_and_content(text)
 
-        # Step 2: Table preservation (can be applied per section)
+        # Step 2: Preserve tables
         for section in header_sections:
             section["content"] = self._preserve_tables(section["content"])
 
-        # Step 3: Create final semantic chunks with overlap
+        # Step 3: Create final chunks with chunk_id
         chunks = self._create_semantic_chunks(header_sections)
 
-        print(f"✅ Chunked {file_path.name} → {len(chunks)} chunks")
+        print(f"✅ Chunked {file_path.name} → {len(chunks)} chunks (with chunk_id)")
         return chunks
 
 
-# ========================== USAGE EXAMPLE ==========================
+# ========================== TEST ==========================
 if __name__ == "__main__":
-    chunker = PolicyChunker(chunk_size=1000, chunk_overlap_percent=0.12)
+    chunker = PolicyChunker(chunk_size=Settings.CHUNK_SIZE, chunk_overlap_percent=Settings.CHUNK_OVERLAP_PERCENT)
     
-    # Test with one file
-    sample_file = "data/raw/travel/sample_travel_policy.txt"
+    sample_file = "data/raw/security/it security and data privacy.txt"  # Ensure this file exists for testing
     chunks = chunker.chunk_document(sample_file)
     
-    print(f"Total chunks created: {len(chunks)}")
-    print("First chunk preview:")
-    print(chunks[0]["chunk_text"][:300] + "...")
+    print(f"\nTotal chunks created: {len(chunks)}")
+    print("\nFirst chunk sample:")
+    print("Chunk ID:", chunks[0]["chunk_id"])
+    print("H1:", chunks[0]["metadata"]["h1_header"])
+    print(chunks[0],'\n',chunks[1],'\n',chunks[2])
