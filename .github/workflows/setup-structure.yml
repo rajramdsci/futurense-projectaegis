@@ -1,0 +1,134 @@
+name: Setup Project Structure
+on:
+  workflow_dispatch: # Allows you to run this manually from the "Actions" tab
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: pip install PyYAML
+
+      - name: Generate Structure
+        run: |
+          cat << 'EOF' > generator.py
+          import yaml
+          import os
+
+          def create_structure(base_path, structure):
+              if isinstance(structure, list):
+                  for item in structure:
+                      # Create empty files
+                      file_path = os.path.join(base_path, item.replace("*", "placeholder"))
+                      os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                      with open(file_path, 'a'):
+                          os.utime(file_path, None)
+              elif isinstance(structure, dict):
+                  for folder, content in structure.items():
+                      new_path = os.path.join(base_path, folder)
+                      os.makedirs(new_path, exist_ok=True)
+                      create_structure(new_path, content)
+
+          with open('structure.yaml', 'r') as f:
+              data = yaml.safe_load(f)
+              create_structure('.', data)
+          EOF
+          
+          # This writes your specific YAML to a file for the script to read
+          cat << 'EOF' > structure.yaml
+          project-aegis-rag:
+            - .env
+            - .gitignore
+            - README.md
+            - requirements.txt
+
+          config:
+            - __init__.py
+            - settings.py
+            prompts:
+              - metadata_extraction.yaml
+              - query_expansion.yaml
+              - hyde_prompt.yaml
+              - system_prompts.yaml
+
+          data:
+            raw:
+              security:
+                - "*.txt"                  # e.g., access_control.txt, data_privacy.txt
+              training:
+                - "*.txt"                  # e.g., mandatory_training.txt
+              travel:
+                - "*.txt"                  # e.g., international_travel.txt
+              work_policies:
+                - "*.txt"                  # e.g., remote_work.txt, leave_policy.txt
+
+          src:
+            - __init__.py
+            ingestion:
+              - __init__.py
+              - chunker.py
+              - metadata_extractor.py
+              - embedder.py
+              - pipeline.py
+            retrieval:
+              - __init__.py
+              - query_transformer.py
+              - metadata_filter.py
+              - retriever.py
+              - reranker.py
+              - pipeline.py
+            core:
+              - __init__.py
+              - llm_client.py
+              - vector_store.py
+              - utils.py
+            models:
+              - __init__.py
+              - schemas.py
+
+          app:
+            - __init__.py
+            - streamlit_app.py
+            components:
+              - chat.py
+              - sidebar.py
+              - results.py
+            utils:
+              - streamlit_helpers.py
+
+          scripts:
+            - run_ingestion.py
+            - test_retrieval.py
+            - evaluate_rag.py
+
+          notebooks:
+            - 01_chunking_test.ipynb
+            - 02_retrieval_debug.ipynb
+
+          tests:
+            - test_chunker.py
+            - test_metadata.py
+            - test_retrieval.py
+
+          .vscode:
+            - settings.json
+            - launch.json
+                  EOF
+                  
+                  python generator.py
+
+              - name: Commit and Push
+                run: |
+                  git config --global user.name "github-actions[bot]"
+                  git config --global user.email "github-actions[bot]@://github.com"
+                  git add .
+                  git commit -m "Automated project structure creation"
+                  git push
