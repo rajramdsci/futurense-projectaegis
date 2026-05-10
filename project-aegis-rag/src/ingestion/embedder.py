@@ -2,10 +2,13 @@
 
 from typing import List, Dict
 import time
+from xmlrpc import client
 from tqdm import tqdm
 
 from sentence_transformers import SentenceTransformer
 from pinecone import Pinecone, ServerlessSpec
+
+
 
 from config.settings import settings  # We'll create this next if needed
 
@@ -17,12 +20,12 @@ class PolicyEmbedder:
 
     def __init__(
         self,
-        model_name: str = "BAAI/bge-large-en-v1.5",   # Excellent open-source model
+        model_name: str = "sentence-transformers/all-MiniLM-L6-v2",   # Excellent open-source model
         index_name: str = "project-aegis-policies"
     ):
         print(f"🔄 Loading embedding model: {model_name}")
         self.model = SentenceTransformer(model_name)
-        self.dimension = self.model.get_sentence_embedding_dimension()
+        self.dimension = self.model.get_embedding_dimension()
         
         self.pc = Pinecone(api_key=settings.PINECONE_API_KEY)
         self.index_name = index_name

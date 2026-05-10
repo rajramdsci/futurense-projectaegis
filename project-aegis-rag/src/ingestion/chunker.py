@@ -3,7 +3,7 @@
 import re
 from typing import List, Dict
 from pathlib import Path
-from config.settings import Settings
+from config.settings import settings
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -17,8 +17,8 @@ class PolicyChunker:
 
     def __init__(
         self,
-        chunk_size: int = 1200,
-        chunk_overlap_percent: float = 0.12,  # 10-15% recommended
+        chunk_size = settings.CHUNK_SIZE,
+        chunk_overlap_percent = settings.CHUNK_OVERLAP_PERCENT,  # 10-15% recommended
     ):
         self.chunk_size = chunk_size
         self.chunk_overlap = int(chunk_size * chunk_overlap_percent)
@@ -147,7 +147,7 @@ class PolicyChunker:
 
 # ========================== TEST ==========================
 if __name__ == "__main__":
-    chunker = PolicyChunker(chunk_size=Settings.CHUNK_SIZE, chunk_overlap_percent=Settings.CHUNK_OVERLAP_PERCENT)
+    chunker = PolicyChunker(1200,0.12)
     
     sample_file = "data/raw/security/it security and data privacy.txt"  # Ensure this file exists for testing
     chunks = chunker.chunk_document(sample_file)

@@ -49,9 +49,9 @@ class PolicyMetadataExtractor:
                 "policy_category": category,
                 "source_file": source_file,
                 "source_folder": file_path.parent.name,
-                "effective_date": self._extract_date(chunk["chunk_text"]),  # Optional regex/LLM
+                #"effective_date": self._extract_date(chunk["chunk_text"]),  # Optional regex/LLM
                 "policy_owner": "Unknown",  # Can be improved with LLM later
-                "last_updated": datetime.now().isoformat(),
+                #"last_updated": datetime.now().isoformat(),
                 "chunk_id": chunk.get("chunk_id")
             }
 
