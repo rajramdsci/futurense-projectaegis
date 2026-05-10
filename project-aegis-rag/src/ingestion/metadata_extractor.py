@@ -21,7 +21,7 @@ class PolicyMetadataExtractor:
         """Infer policy_category from folder name."""
         parts = file_path.parts
         for part in parts:
-            if part in ["security", "training", "travel", "work_policies"]:
+            if part in ["security", "training", "travel", "Work policies"]:
                 return part.replace("_", " ").title()
         return "General"
 

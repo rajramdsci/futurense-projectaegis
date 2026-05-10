@@ -80,7 +80,7 @@ class PolicyChunker:
         """Placeholder for table preservation logic."""
         return text  # Enhance later as needed
 
-    def _create_semantic_chunks(self, header_chunks: List[Dict]) -> List[Dict]:
+    def _create_semantic_chunks(self, header_chunks: List[Dict],chnk_cntr: int) -> List[Dict]:
         """
         Creates final semantic chunks with overlap and assigns running chunk_id.
         """
@@ -92,7 +92,7 @@ class PolicyChunker:
             length_function=len,
         )
 
-        chunk_counter = 1  # Running count starts from 1
+        chunk_counter = chnk_cntr  # Running count starts from 1
 
         for section in header_chunks:
             if not section["content"].strip():
@@ -120,7 +120,7 @@ class PolicyChunker:
 
         return final_chunks
 
-    def chunk_document(self, file_path: str | Path) -> List[Dict]:
+    def chunk_document(self, file_path: str | Path,chnk_cntr: int) -> List[Dict]:
         """
         Main method: Returns list of chunks with chunk_id.
         """
@@ -139,7 +139,7 @@ class PolicyChunker:
             section["content"] = self._preserve_tables(section["content"])
 
         # Step 3: Create final chunks with chunk_id
-        chunks = self._create_semantic_chunks(header_sections)
+        chunks = self._create_semantic_chunks(header_sections, chnk_cntr)
 
         print(f"✅ Chunked {file_path.name} → {len(chunks)} chunks (with chunk_id)")
         return chunks

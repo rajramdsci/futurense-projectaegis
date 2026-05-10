@@ -34,7 +34,7 @@ class IngestionPipeline:
 
     def discover_documents(self) -> List[Path]:
         """Find all .txt files in the four policy folders."""
-        categories = {"security", "training", "travel", "work_policies"}
+        categories = {"security", "training", "travel", "Work policies"}
         documents = []
 
         for category in categories:
@@ -57,13 +57,20 @@ class IngestionPipeline:
             documents = documents[:limit]
 
         all_chunks = []
-
+        chunk_counter = 0  # To maintain unique chunk IDs across documents
         for doc_path in documents:
             print(f"\n🔄 Processing: {doc_path.relative_to(self.data_dir)}")
 
             try:
                 # Step 1: Chunking
-                chunks = self.chunker.chunk_document(doc_path)
+                
+                chunks = self.chunker.chunk_document(doc_path,chunk_counter)
+                # count the number of chunks created for that document 
+                total_count = json.dumps(chunks).count('"chunk_id"')
+                chunk_counter += total_count  # Update counter for next document
+                #print(total_count)
+
+                chunk_counter += len(chunks)  # Update counter for next document
 
                 # Step 2: Metadata Enrichment
                 enriched_chunks = self.metadata_extractor.enrich_chunks(chunks, doc_path)
