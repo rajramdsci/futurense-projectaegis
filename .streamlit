@@ -1,0 +1,5 @@
+[server]
+runOnSave = true
+
+[env]
+PYTHONPATH = "/mount/src/futurense-projectaegis/project-aegis-rag"
