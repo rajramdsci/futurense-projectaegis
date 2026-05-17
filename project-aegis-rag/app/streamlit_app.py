@@ -1,6 +1,14 @@
 # app/streamlit_app.py
 
 
+import sys
+from pathlib import Path
+
+# Adds the root directory to the python path
+root_path = Path(__file__).resolve().parent.parent
+sys.path.append(str(root_path))
+
+
 import warnings
 import os
 
@@ -11,10 +19,10 @@ os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
 ## ======= rest of the code =======
 
 import streamlit as st
-from pathlib import Path
-import sys
+# from pathlib import Path
+# import sys
 
-sys.path.append(str(Path(__file__).parent.parent))
+# sys.path.append(str(Path(__file__).parent.parent))
 
 from src.ingestion.pipeline import IngestionPipeline
 from src.retrieval.pipeline import RetrievalPipeline
