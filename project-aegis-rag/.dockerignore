@@ -1,0 +1,23 @@
+# Ignore local virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Ignore python caches
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Ignore local system/IDE directories
+.git/
+.gitignore
+.DS_Store
+.vscode/
+.idea/
+
+# Ignore local data files 
+# (Uncomment the line below if you do NOT want your local data/ folder copied into the image)
+# data/
